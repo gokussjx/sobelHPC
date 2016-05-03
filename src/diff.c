@@ -29,9 +29,11 @@ int main(int argc, char *argv[]){
     color *input1=load(open(argv[1], O_RDONLY)), *input2=load(open(argv[2], O_RDONLY));
     int ct_same=0, ct_total=DIM*DIM;
     memset(bar, '=', BAR+20);
-    for(int y=0;y<DIM;++y)for(int x=0;x<DIM;++x)
-        if(match(INPUT(1,x,y),INPUT(2,x,y)))++ct_same;
-        else bar[(y*DIM+x)*BAR/(DIM*DIM)+1]='X';
+    for(int y=0;y<DIM;++y)for(int x=0;x<DIM;++x){
+        char *progress=&bar[(y*DIM+x)*BAR/(DIM*DIM)+1];
+        if(match(INPUT(1,x,y),INPUT(2,x,y))) ++ct_same;
+        else *progress = 'X';
+    }
     printf("Match %d/%d %.3f%%\n", ct_same, ct_total, (float)ct_same*100.0f/ct_total);
     bar[0]='[', bar[BAR-1]=']', bar[BAR]='\0';
     printf("%s\n", bar);
