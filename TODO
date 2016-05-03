@@ -1,0 +1,41 @@
+What's new:
+
+    Old `Makefile` from CUDA sample renamed to `cuda.mk`
+    `inc` moved to `include/cuda` (cuda.mk changed accordingly)
+    General phony make targets `all` `clean` removed from `cuda.mk`
+        Note: `cuda.mk` takes care of CUDA related make vars and build CUDA related
+        targets only.
+        
+    `standard.mk` renamed to `Makefile`
+        Note: `Makefile` takes charge of build/clean of whold project
+        All source files go into `src/`
+        All targets go into `bin/` (which is more easily cleaned by deleting the dir)
+        CUDA objects link into `bin/hw6`
+    
+    Sobel filter example can be found at `example/projects/SobelFilter/`
+    
+    Sobel example incorporated with `src/driver.cu` as `src/sobel.cu`
+        For details read `src/sobel.cu` from bottom to top
+    
+Progress:
+
+    Identity filter works ok, resulting 100% match. Sobel filter runs, 
+    result unconfirmed, memory allocation/access/release unchecked.
+
+Test run:
+
+    make
+    make run
+    bin/diff *.pgm
+
+Clean:
+
+    make clean
+
+TODO:
+
+    Enable sobel filter by setting the enable flag inside src/sobel.cu: sobelFilter()
+        And `make && make run` again
+    Check result of sobel filter
+    Try different logical configurations: src/sobel.cu: sobelFilter()
+        SobelTex<<<ih, 384>>>(odata, iw, iw, ih, fScale );
