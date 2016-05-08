@@ -46,29 +46,28 @@ void blkcpy2d(int _x, int _y){
         OUTPUT(x-x1,y-y1)=(x>=0&&x<DIM&&y>=0&&y<DIM)?INPUT(x,y):buffered_mapping(x,y);
 }
 
-int ccmp(const void *a, const void *b){
-    if(*(color*)a<*(color*)b) return -1;
-    if(*(color*)a>*(color*)b) return 1;
-    return 0;
-}
-
-int median_filter(int x, int y){
+#define ABS(x) ((x)<0?-(x):(x))
+#define fScale (1.f)
+int sobel_filter(int x, int y){
     blkcpy2d(x, y);
-    qsort(blkcpy2d_out, filter_size*filter_size, sizeof(color), ccmp);
-    return blkcpy2d_out[((filter_size*filter_size)>>1)+1]; // INPUT(x,y);
+    short Horz = OUTPUT(2,0) + 2*OUTPUT(2,1) + OUTPUT(2,2) - OUTPUT(0,0) - 2*OUTPUT(0,1) - OUTPUT(0,2);
+    short Vert = OUTPUT(0,0) + 2*OUTPUT(1,0) + OUTPUT(2,0) - OUTPUT(0,2) - 2*OUTPUT(1,2) - OUTPUT(2,2);
+    short Sum = (short) (fScale*(ABS(Horz)+ABS(Vert)));
+    if ( Sum < 0 ) return 0; else if ( Sum > 0xff ) return 0xff;
+    return (int) (unsigned char) Sum;
 }
 
 int main(int argc, char *argv[]){
-    if(argc<3){ fprintf(stderr, "Usage: filter_size input.ppm\n"); return 1; }
-    filter_size=atoi(argv[1]); load(open(argv[2], O_RDONLY));
+    if(argc<2){ fprintf(stderr, "Usage: input.ppm\n"); return 1; }
+    filter_size=3; load(open(argv[1], O_RDONLY));
     for(int y=0;y<DIM;++y)for(int x=0;x<DIM;++x){
 #ifdef P6
-        memset(tmp, median_filter(x,y), 3);
+        memset(tmp, sobel_filter(x,y), 3);
         fwrite(tmp, 3, 1, stdout);
 #endif
 
 #ifdef P5
-        memset(tmp, median_filter(x,y), 1);
+        memset(tmp, sobel_filter(x,y), 1);
         fwrite(tmp, 1, 1, stdout);
 #endif
     }
