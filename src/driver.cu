@@ -84,25 +84,29 @@ void runTest(int argc, char **argv) {
   setupTexture(width, height, INPUT_RAW);
 
   // Timing analysis loops
-  short blockSizeHolder[] = {8, 16};
+  short blockSizeHolder[] = {1,2,3,4,5,8,12,16,24}; // Unit: warps
 
-#if 0 // # Analysis Mode Flag
+#if 1 // # Analysis Mode Flag
   // Loop blockSize: 8 or 16
-  for(short blockSizeIndex = 0; blockSizeIndex < 2; blockSizeIndex++) {
+  for(short blockSizeIndex = 0; blockSizeIndex < sizeof(blockSizeHolder)/sizeof(short); blockSizeIndex++) {
     // Iterate each, 10 times
-    for(short loop = 0; loop < 10; loop++) {
+    // for(short loop = 0; loop < 10; loop++) {
+    {
 #else
 #define blockSizeIndex (0)
 {{
 #endif
+    int blkSz=blockSizeHolder[blockSizeIndex]*32;
+    printf("=== Block Size %d ===\n", blkSz);
 
       // Specify block and grid dimensions
-      dim3 dimBlock(blockSizeHolder[blockSizeIndex], blockSizeHolder[blockSizeIndex], 1);
-      dim3 dimGrid(width / dimBlock.x, height / dimBlock.y, 1);
+      // dim3 dimBlock(blockSizeHolder[blockSizeIndex], blockSizeHolder[blockSizeIndex], 1);
+      // dim3 dimGrid(width / dimBlock.x, height / dimBlock.y, 1);
 
       // Warmup
       // medianFilterKernel<<<dimGrid, dimBlock, 0>>>(hData, dData, width, height, windowSizeHolder[windowSizeIndex]);
-
+      sobelFilter(dData, width, height, 1.f, blkSz);
+      
       // Synchronize, and start timer
       checkCudaErrors(cudaDeviceSynchronize());
       StopWatchInterface *timer = NULL;
@@ -110,7 +114,7 @@ void runTest(int argc, char **argv) {
       sdkStartTimer(&timer);
       // Execute the kernel
       // medianFilterKernel<<<dimGrid, dimBlock, 0>>>(hData, dData, width, height, windowSizeHolder[windowSizeIndex]);
-      sobelFilter(dData, width, height, 1.f);
+      sobelFilter(dData, width, height, 1.f, blkSz);
       
       // Check if kernel execution generated an error
       getLastCudaError("Kernel execution failed");
@@ -120,7 +124,7 @@ void runTest(int argc, char **argv) {
       sdkStopTimer(&timer);
       printf("Processing time: %fms\n", sdkGetTimerValue(&timer));
       printf("%.2f Mpixels/sec\n",
-             (width *height / (sdkGetTimerValue(&timer) / 1000.0f)) / 1e6);
+            (width *height / (sdkGetTimerValue(&timer) / 1000.0f)) / 1e6);
       sdkDeleteTimer(&timer);
 
       // Allocate mem for the result on host side
@@ -131,7 +135,7 @@ void runTest(int argc, char **argv) {
       
       // Write result to file
       sdkSavePGM(outputFilename, hOutputData, width, height);
-      printf("Wrote '%s'\n", outputFilename);
+      // printf("Wrote '%s'\n", outputFilename);
     }
 
     // Ask Golden function to generate its output, compare and provide match info

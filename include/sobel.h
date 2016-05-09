@@ -26,7 +26,7 @@ typedef unsigned char Pixel;
 // extern enum SobelDisplayMode g_SobelDisplayMode;
 
 void setupTexture(int iw, int ih, Pixel *data);
-void sobelFilter(Pixel *odata, int iw, int ih, float fScale);
+void sobelFilter(Pixel *odata, int iw, int ih, float fScale, int blkSize);
 void deleteTexture(void);
 
 #endif

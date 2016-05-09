@@ -37,98 +37,6 @@ ComputeSobel(unsigned char ul, // upper left
     return (unsigned char) Sum;
 }
 
-// __global__ void 
-// SobelShared( uchar4 *pSobelOriginal, unsigned short SobelPitch, 
-// #ifndef FIXED_BLOCKWIDTH
-//              short BlockWidth, short SharedPitch,
-// #endif
-//              short w, short h, float fScale )
-// { 
-//     short u = 4*blockIdx.x*BlockWidth;
-//     short v = blockIdx.y*blockDim.y + threadIdx.y;
-//     short ib;
-
-//     int SharedIdx = threadIdx.y * SharedPitch;
-
-//     for ( ib = threadIdx.x; ib < BlockWidth+2*Radius; ib += blockDim.x ) {
-//         LocalBlock[SharedIdx+4*ib+0] = tex2D( tex, 
-//             (float) (u+4*ib-Radius+0), (float) (v-Radius) );
-//         LocalBlock[SharedIdx+4*ib+1] = tex2D( tex, 
-//             (float) (u+4*ib-Radius+1), (float) (v-Radius) );
-//         LocalBlock[SharedIdx+4*ib+2] = tex2D( tex, 
-//             (float) (u+4*ib-Radius+2), (float) (v-Radius) );
-//         LocalBlock[SharedIdx+4*ib+3] = tex2D( tex, 
-//             (float) (u+4*ib-Radius+3), (float) (v-Radius) );
-//     }
-//     if ( threadIdx.y < Radius*2 ) {
-//         //
-//         // copy trailing Radius*2 rows of pixels into shared
-//         //
-//         SharedIdx = (blockDim.y+threadIdx.y) * SharedPitch;
-//         for ( ib = threadIdx.x; ib < BlockWidth+2*Radius; ib += blockDim.x ) {
-//             LocalBlock[SharedIdx+4*ib+0] = tex2D( tex, 
-//                 (float) (u+4*ib-Radius+0), (float) (v+blockDim.y-Radius) );
-//             LocalBlock[SharedIdx+4*ib+1] = tex2D( tex, 
-//                 (float) (u+4*ib-Radius+1), (float) (v+blockDim.y-Radius) );
-//             LocalBlock[SharedIdx+4*ib+2] = tex2D( tex, 
-//                 (float) (u+4*ib-Radius+2), (float) (v+blockDim.y-Radius) );
-//             LocalBlock[SharedIdx+4*ib+3] = tex2D( tex, 
-//                 (float) (u+4*ib-Radius+3), (float) (v+blockDim.y-Radius) );
-//         }
-//     }
-
-//     __syncthreads();
-
-//     u >>= 2;    // index as uchar4 from here
-//     uchar4 *pSobel = (uchar4 *) (((char *) pSobelOriginal)+v*SobelPitch);
-//     SharedIdx = threadIdx.y * SharedPitch;
-
-//     for ( ib = threadIdx.x; ib < BlockWidth; ib += blockDim.x ) {
-
-//         unsigned char pix00 = LocalBlock[SharedIdx+4*ib+0*SharedPitch+0];
-//         unsigned char pix01 = LocalBlock[SharedIdx+4*ib+0*SharedPitch+1];
-//         unsigned char pix02 = LocalBlock[SharedIdx+4*ib+0*SharedPitch+2];
-//         unsigned char pix10 = LocalBlock[SharedIdx+4*ib+1*SharedPitch+0];
-//         unsigned char pix11 = LocalBlock[SharedIdx+4*ib+1*SharedPitch+1];
-//         unsigned char pix12 = LocalBlock[SharedIdx+4*ib+1*SharedPitch+2];
-//         unsigned char pix20 = LocalBlock[SharedIdx+4*ib+2*SharedPitch+0];
-//         unsigned char pix21 = LocalBlock[SharedIdx+4*ib+2*SharedPitch+1];
-//         unsigned char pix22 = LocalBlock[SharedIdx+4*ib+2*SharedPitch+2];
-
-//         uchar4 out;
-
-//         out.x = ComputeSobel(pix00, pix01, pix02, 
-//                              pix10, pix11, pix12, 
-//                              pix20, pix21, pix22, fScale );
-
-//         pix00 = LocalBlock[SharedIdx+4*ib+0*SharedPitch+3];
-//         pix10 = LocalBlock[SharedIdx+4*ib+1*SharedPitch+3];
-//         pix20 = LocalBlock[SharedIdx+4*ib+2*SharedPitch+3];
-//         out.y = ComputeSobel(pix01, pix02, pix00, 
-//                              pix11, pix12, pix10, 
-//                              pix21, pix22, pix20, fScale );
-
-//         pix01 = LocalBlock[SharedIdx+4*ib+0*SharedPitch+4];
-//         pix11 = LocalBlock[SharedIdx+4*ib+1*SharedPitch+4];
-//         pix21 = LocalBlock[SharedIdx+4*ib+2*SharedPitch+4];
-//         out.z = ComputeSobel( pix02, pix00, pix01, 
-//                               pix12, pix10, pix11, 
-//                               pix22, pix20, pix21, fScale );
-
-//         pix02 = LocalBlock[SharedIdx+4*ib+0*SharedPitch+5];
-//         pix12 = LocalBlock[SharedIdx+4*ib+1*SharedPitch+5];
-//         pix22 = LocalBlock[SharedIdx+4*ib+2*SharedPitch+5];
-//         out.w = ComputeSobel( pix00, pix01, pix02, 
-//                               pix10, pix11, pix12, 
-//                               pix20, pix21, pix22, fScale );
-//         if ( u+ib < w/4 && v < h ) {
-//             pSobel[u+ib] = out;
-//         }
-//     }
-
-//     __syncthreads();
-// }
-
 __global__ void 
 SobelCopyImage( unsigned char *pSobelOriginal, unsigned int Pitch, 
                 int w, int h )
@@ -177,12 +85,12 @@ void deleteTexture(void)
 }
 
 //float *inputData, float *outputData, int width, int height, int filterSize
-void sobelFilter(Pixel *odata, int iw, int ih, float fScale) {
+void sobelFilter(Pixel *odata, int iw, int ih, float fScale, int blkSize) {
     CUDA_SAFE_CALL(cudaBindTextureToArray(tex, array));
-#if 0 // Filter Enable Flag
-    SobelTex<<<ih, 384>>>(odata, iw, iw, ih, fScale );
+#if 1 // Filter Enable Flag
+    SobelTex<<<ih, blkSize>>>(odata, iw, iw, ih, fScale );
 #else
-    SobelCopyImage<<<ih, 384>>>(odata, iw, iw, ih );
+    SobelCopyImage<<<ih, blkSize>>>(odata, iw, iw, ih );
 #endif
     CUDA_SAFE_CALL(cudaUnbindTexture(tex));
 }
